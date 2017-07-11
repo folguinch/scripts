@@ -35,6 +35,10 @@ following four resources (shown with defaults):
 See I<COLOR AND GRAPHICS> in the @@RXVT_NAME@@(1) manpage for valid
 indices.
 
+Updates:
+11/07/2017 - Add new tab at current working directory. Implementation based on:
+    https://www.df7cb.de/blog/2014/New_urxvt_tab_in_current_directory.html
+
 =cut
 
 sub refresh {
