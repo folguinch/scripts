@@ -98,6 +98,8 @@ sub new_tab {
       $term->resource (perl_ext_2 => $term->resource ("perl_ext_2") . ",-tabbed");
    };
 
+   push @argv, "-cd", $ENV{"HOME"};
+
    push @urxvt::TERM_EXT, urxvt::ext::tabbed::tab::;
 
    my $term = new urxvt::term
@@ -406,7 +408,7 @@ sub tab_key_press {
          $self->new_tab;
 
          return 1;
-      } elsif ($keysim == 0xff52) {
+      } elsif ($keysym == 0xff52) {
           $self->new_tab_current;
 
           return 1;
