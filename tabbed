@@ -107,6 +107,41 @@ sub new_tab {
    ;
 }
 
+sub new_tab_current {
+   my ($self, @argv) = @_;
+
+   # save a backlink to us, make sure tabbed is inactive
+   push @urxvt::TERM_INIT, sub {
+      my ($term) = @_;
+      $term->{parent} = $self;
+
+      for (0 .. urxvt::NUM_RESOURCES - 1) {
+         my $value = $self->{resource}[$_];
+
+         $term->resource ("+$_" => $value)
+            if defined $value;
+      }
+
+      $term->resource (perl_ext_2 => $term->resource ("perl_ext_2") . ",-tabbed");
+   };
+
+   # Get the working directory of the current tab and append a -cd to the
+   # command line
+   my $pid = $self->{cur}{pid};
+   my $pwd = readlink "/proc/$pid/cwd";
+   if ($pwd) {
+       push @argv, "-cd", $pwd;
+   }
+
+   push @urxvt::TERM_EXT, urxvt::ext::tabbed::tab::;
+
+   my $term = new urxvt::term
+      $self->env, $urxvt::RXVTNAME,
+      -embed => $self->parent,
+      @argv,
+   ;
+}
+
 sub configure {
    my ($self) = @_;
 
@@ -315,6 +350,12 @@ sub on_wm_delete_window {
    1
 }
 
+sub tab_child_start {
+    my ($self, $term, $pid) = @_;
+    $term->{pid} = $pid;
+    1;
+}
+
 sub tab_start {
    my ($self, $tab) = @_;
 
@@ -365,6 +406,10 @@ sub tab_key_press {
          $self->new_tab;
 
          return 1;
+      } elsif ($keysim == 0xff52) {
+          $self->new_tab_current;
+
+          return 1;
       }
    }
    elsif ($event->{state} & urxvt::ControlMask) {
@@ -405,7 +450,7 @@ package urxvt::ext::tabbed::tab;
 # simply proxies all interesting calls back to the tabbed class.
 
 {
-   for my $hook (qw(start destroy key_press property_notify)) {
+   for my $hook (qw(start destroy key_press property_notify child_start)) {
       eval qq{
          sub on_$hook {
             my \$parent = \$_[0]{term}{parent}
